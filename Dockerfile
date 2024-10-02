@@ -3,7 +3,7 @@ FROM node:18-alpine as base
 RUN apk add --no-cache g++ make py3-pip libc6-compat
 WORKDIR /app
 COPY package*.json ./
-EXPOSE 3001
+EXPOSE 3002
 
 # Builder stage
 FROM base as builder
@@ -17,7 +17,7 @@ FROM base as production
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=3001  
+ENV PORT=3002 
 RUN npm ci
 
 RUN addgroup -g 1001 -S nodejs
@@ -36,7 +36,7 @@ FROM base as dev
 WORKDIR /app
 
 ENV NODE_ENV=development
-ENV PORT=3001  
+ENV PORT=3002  
 RUN npm ci
 
 COPY . .
