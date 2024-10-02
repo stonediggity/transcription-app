@@ -44,3 +44,22 @@ export async function signup(formData: FormData) {
   revalidatePath('/', 'layout')
   redirect('/')
 }
+
+// Add the new signout function here
+export async function signout() {
+  const supabase = createClient()
+
+  // Sign out the user
+  const { error } = await supabase.auth.signOut()
+
+  if (error) {
+    // If there's an error during sign out, redirect to error page
+    redirect('/error')
+  }
+
+  // Revalidate the layout to reflect the signed-out state
+  revalidatePath('/', 'layout')
+  
+  // Redirect to the home page after successful sign out
+  redirect('/')
+}
