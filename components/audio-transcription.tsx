@@ -159,8 +159,8 @@ export function AudioTranscription() {
   // {{ end_edit_2 }}
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 py-12 lg:px-8">
+    <div className="flex min-h-screen bg-gray-100 flex-col md:flex-row">
+      <div className="w-full  lg:w-1/3 flex flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
             Audio Transcription
@@ -243,7 +243,7 @@ export function AudioTranscription() {
       </div>
 
       {/* Transcription Display */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 py-12 lg:px-8 bg-white">
+      <div className="w-full lg:w-2/3 flex flex-col justify-center px-6 py-12 lg:px-8 bg-white">
         <div className="sm:mx-auto sm:w-full sm:max-w-lg">
           <h3 className="text-lg font-semibold mb-4">Transcription</h3>
           {transcription ? (
