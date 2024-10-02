@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  app:
+    image: transcription-app
+    build:
+      context: ./
+      target: dev  # Change to 'production' for production builds
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3001:3001"
+    environment:
+      - GROQ_API_KEY=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
+      - GROQ_BASE_URL=https://api.groq.com/openai/v1
