@@ -6,15 +6,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Download, Mic, Square } from "lucide-react"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea" // {{ edit_1 }}
 
 export function AudioTranscription() {
   const [file, setFile] = useState<File | null>(null)
-  const [transcription, setTranscription] = useState<string>('')
+  const [transcription, setTranscription] = useState<string>('') // {{ edit_2 }}
   const [isTranscribing, setIsTranscribing] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
-  const [mode, setMode] = useState<'upload' | 'record'>('upload')
+  const [mode, setMode] = useState<'upload' | 'record'>('record') // Changed default to 'record'
 
   // {{ edit_1 }} Add useEffect to warn before refreshing
   useEffect(() => {
@@ -62,7 +63,8 @@ export function AudioTranscription() {
       }
 
       const result = await response.json()
-      setTranscription(result.text)
+      // Append new transcription with a newline separator
+      setTranscription(prev => prev ? `${prev}\n\n${result.text}` : result.text)
     } catch (error) {
       console.error('Error during transcription:', error)
       alert('An error occurred during transcription. Please try again.')
@@ -73,9 +75,10 @@ export function AudioTranscription() {
 
   const handleDownload = () => {
     const element = document.createElement("a")
-    const file = new Blob([transcription], {type: 'text/plain'})
+    const fileContent = transcription // Already a single string with appended text
+    const file = new Blob([fileContent], { type: 'text/plain' })
     element.href = URL.createObjectURL(file)
-    element.download = "transcription.txt" 
+    element.download = "transcription.txt"
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
@@ -136,7 +139,8 @@ export function AudioTranscription() {
       }
 
       const result = await response.json()
-      setTranscription(result.text)
+      // Append new transcription with a newline separator
+      setTranscription(prev => prev ? `${prev}\n\n${result.text}` : result.text)
     } catch (error) {
       console.error('Error during transcription:', error)
       alert('An error occurred during transcription. Please try again.')
@@ -145,18 +149,68 @@ export function AudioTranscription() {
     }
   }
 
-  // {{ edit_2 }} Add handleNewTranscription function
   const handleNewTranscription = () => {
     if (isTranscribing) {
       const confirmReset = window.confirm('A transcription is in progress. Are you sure you want to start a new one?')
       if (!confirmReset) return
     }
     setTranscription('')
+    setFormalLetter('')
     setFile(null)
     setRecordedBlob(null)
     setMode('upload')
+    setConversionType('letter')
   }
-  // {{ end_edit_2 }}
+
+  const handleTranscriptionChange = (value: string) => {
+    setTranscription(value)
+  }
+
+  // {{ edit_3 }} Add Convert to Letter button and handler
+  const [formalLetter, setFormalLetter] = useState<string>('')
+
+  // {{ edit_4 }} Introduce separate state for conversion
+  const [isConverting, setIsConverting] = useState(false)
+
+  // {{ edit_10 }} Add state for conversion type
+  const [conversionType, setConversionType] = useState<'letter' | 'notes'>('letter')
+
+  // {{ edit_12 }} Update handleConvert to include conversion type
+  const handleConvert = async () => {
+    if (!transcription) {
+      alert('There is no transcription to convert.')
+      return
+    }
+
+    setIsConverting(true)
+
+    try {
+      const response = await fetch('/api/convert', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: transcription, type: conversionType }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Conversion failed')
+      }
+
+      const result = await response.json()
+      if (conversionType === 'letter') {
+        setFormalLetter(result.formalLetter)
+      } else {
+        setFormalLetter(result.formalLetter) // You might want to rename state if handling notes separately
+      }
+    } catch (error) {
+      console.error('Error during conversion:', error)
+      alert('An error occurred during conversion. Please try again.')
+    } finally {
+      setIsConverting(false)
+    }
+  }
+  // {{ end_edit_12 }}
 
   return (
     <div className="flex min-h-screen bg-gray-100 flex-col md:flex-row">
@@ -169,7 +223,7 @@ export function AudioTranscription() {
 
         <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md">
           {/* Dropdown to select mode */}
-          <Select onValueChange={(value: string) => setMode(value as 'upload' | 'record')} defaultValue="upload">
+          <Select onValueChange={(value: string) => setMode(value as 'upload' | 'record')} defaultValue="record">
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select Mode" />
             </SelectTrigger>
@@ -248,18 +302,87 @@ export function AudioTranscription() {
           <h3 className="text-lg font-semibold mb-4">Transcription</h3>
           {transcription ? (
             <>
-              <div className="bg-gray-100 p-4 rounded-md min-h-[200px] mb-4">
-                {transcription}
+              {/* Conversion Type Switch - Visible Only After Transcription */}
+              <div className="flex items-center mb-4">
+                <Label className="mr-2">Conversion Type:</Label>
+                <Select
+                  onValueChange={(value: string) =>
+                    setConversionType(value as 'letter' | 'notes')
+                  }
+                  defaultValue="letter"
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="letter">Letter</SelectItem>
+                    <SelectItem value="notes">Notes</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <Button onClick={handleDownload} className="flex items-center">
-                <Download className="mr-2 h-4 w-4" />
-                Download Transcription
-              </Button>
-              {/* {{ edit_3 }} */}
-              <Button onClick={handleNewTranscription} className="flex items-center mt-4">
-                Start New Transcription
-              </Button>
-              {/* {{ end_edit_3 }} */}
+
+              {formalLetter ? (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-2">
+                    {conversionType === 'letter' ? 'Formal Letter' : 'Structured Notes'}
+                  </h3>
+                  <Textarea
+                    value={formalLetter}
+                    readOnly
+                    className="bg-gray-100 p-4 rounded-md min-h-[200px] mb-4"
+                  />
+                  <Button onClick={handleDownload} className="flex items-center mt-2">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download {conversionType === 'letter' ? 'Formal Letter' : 'Structured Notes'}
+                  </Button>
+                  <Button
+                    onClick={handleNewTranscription}
+                    className="flex items-center mt-4"
+                    disabled={isConverting || isTranscribing}
+                  >
+                    Start New Transcription
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <Textarea
+                    value={transcription}
+                    onChange={(e) => handleTranscriptionChange(e.target.value)}
+                    className="bg-gray-100 p-4 rounded-md min-h-[200px] mb-4"
+                  />
+                  <div className="flex space-x-4">
+                    <Button
+                      onClick={handleDownload}
+                      className="flex items-center mt-2"
+                      disabled={isTranscribing}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Transcription
+                    </Button>
+                    <Button
+                      onClick={handleConvert}
+                      className="flex items-center mt-2"
+                      disabled={isConverting || isTranscribing}
+                    >
+                      {isConverting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Converting...
+                        </>
+                      ) : (
+                        'Convert'
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleNewTranscription}
+                      className="flex items-center mt-2"
+                      disabled={isTranscribing || isConverting}
+                    >
+                      Start New Transcription
+                    </Button>
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <p className="text-gray-500">Transcription will appear here once processed.</p>
